@@ -1,0 +1,127 @@
+# ============================================
+# Model
+# ============================================
+model:
+  name: Mixer_UNet
+  input_channels: 3
+  output_classes: 1
+  input_size: 224x224
+
+# ============================================
+# Training
+# ============================================
+training:
+  framework: PyTorch 2.0.1
+  cuda_version: "11.8"
+  gpu: NVIDIA RTX 3060 (12 GB)
+  mixed_precision: true  # PyTorch AMP (autocast + GradScaler)
+  seed: 42
+  max_epochs: 300
+  batch_size: 8
+
+# ============================================
+# Optimizer
+# ============================================
+optimizer:
+  name: Adam
+  learning_rate: 1.0e-4
+  eps: 1.0e-7
+
+# ============================================
+# Learning Rate Scheduler
+# ============================================
+scheduler:
+  name: ReduceLROnPlateau
+  mode: min
+  factor: 0.5
+  patience: 10
+
+# ============================================
+# Early Stopping
+# ============================================
+early_stopping:
+  patience: 20
+  monitor: val_dice
+  mode: max
+
+# ============================================
+# Loss Function
+# ============================================
+loss:
+  name: BCEDiceLoss
+  formula: "L_T = L_Dice + 0.5 * L_BCE"
+  smoothing_constant: 1.0e-5
+
+# ============================================
+# Data Augmentation (training only)
+# ============================================
+augmentation:
+  # BUSI dataset
+  busi:
+    horizontal_flip: { p: 0.5 }
+    vertical_flip: { p: 0.5 }
+    random_rotate90: { p: 0.5 }
+    transpose: { p: 0.5 }
+  # Kvasir-SEG and CVC-ClinicDB
+  kvasir_cvc:
+    resize: [224, 224]
+    random_rotation: { degrees: 90 }
+    horizontal_flip: { p: 0.5 }
+  # ISIC2018
+  isic18:
+    normalize: true  # dataset-specific mean/std
+    horizontal_flip: { p: 0.5 }
+    vertical_flip: { p: 0.5 }
+    random_rotation: { p: 0.5, degrees: [0, 360] }
+    resize: [224, 224]
+
+# ============================================
+# Dataset Splits
+# ============================================
+datasets:
+  BUSI:
+    total_images: 647
+    evaluation: 5-fold cross-validation
+    train_per_fold: 480 (4x120)
+    val_per_fold: 120
+    test: 150 (fixed across folds)
+    split_file: busi_patient_splits.json
+  Kvasir-SEG:
+    total_images: 1000
+    evaluation: single fixed split
+    train: 600
+    val: 200
+    test: 200
+  CVC-ClinicDB:
+    total_images: 612
+    evaluation: single fixed split
+    train: 368
+    val: 122
+    test: 122
+  ISIC2018:
+    total_images: 2694
+    evaluation: single fixed split
+    train: 1886
+    val: 808
+    test: 808 (=val)
+
+# ============================================
+# Evaluation Metrics
+# ============================================
+metrics:
+  - Dice
+  - IoU
+  - Sensitivity
+  - Specificity
+  - Precision
+  - Accuracy
+
+# ============================================
+# Reproducibility
+# ============================================
+reproducibility:
+  python_hash_seed: 42
+  numpy_seed: 42
+  torch_manual_seed: 42
+  cudnn_benchmark: false
+  cudnn_deterministic: true
